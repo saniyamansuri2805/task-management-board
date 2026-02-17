@@ -4,7 +4,7 @@ import TaskList from '../components/TaskList'
 export default function CompletedTasks() {
   return (
     <div>
-      <TaskList showOnlyCompleted showAddTaskBtn={false} showFilterAndSort={false}/>
+      <TaskList showOnlyCompleted={true} showAddTaskBtn={false} showFilterAndSort={false}/>
     </div>
   );
 }

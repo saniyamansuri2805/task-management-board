@@ -44,7 +44,7 @@ export default function TaskList({ showOnlyCompleted = false, showAddTaskBtn = t
           </select>}
         </div>
         <div className="flex gap-2 items-center">
-          {showFilterAndSort &&<button onClick={()=>setSortAsc(s=>!s)} className="px-2 py-1 border rounded">Sort by due {sortAsc? '↑':'↓'}</button>}
+          {showFilterAndSort &&<button onClick={()=>setSortAsc(!sortAsc)} className="px-2 py-1 border rounded">Sort by due {sortAsc? '↑':'↓'}</button>}
         </div>
       </div>
 
