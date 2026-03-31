@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import TaskCard from './TaskCard'
 import TaskForm from './TaskForm'
@@ -12,15 +12,21 @@ export default function TaskList({ showOnlyCompleted = false, showAddTaskBtn = t
   const [sortAsc, setSortAsc] = useState(true)
   const [editing, setEditing] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [searchText, setSearchText] = useState('')
+  // console.log("SearchText:", searchText)
+
+  const intervalID = useRef();
+  const currentTime = useRef(0);
 
   const list = useMemo(() => {
-    let l = items.slice()
-    if (showOnlyCompleted) l = l.filter(t => t.status === STATUS_COMPLETED)
-    if (filter !== 'All') l = l.filter(t => t.status === filter)
-    l.sort((a,b)=> new Date(a.dueDate) - new Date(b.dueDate))
-    if (!sortAsc) l.reverse()
-    return l
-  }, [items, filter, sortAsc, showOnlyCompleted])
+    let l = items.slice();
+    if (showOnlyCompleted) l = l.filter((t) => t.status === STATUS_COMPLETED);
+    if (filter !== "All") l = l.filter((t) => t.status === filter);
+    l.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    if (!sortAsc) l.reverse();
+    const searchTextFiltered = l.filter(t => t.title.toLowerCase().includes(searchText.toLowerCase()));
+    return searchTextFiltered;
+  }, [items, filter, sortAsc, showOnlyCompleted, searchText]);
 
   function openNew() {
     setEditing(null)
@@ -33,33 +39,108 @@ export default function TaskList({ showOnlyCompleted = false, showAddTaskBtn = t
     setShowForm(false)
   }
 
+  const onSearchInputChange = (e) => {
+    setSearchText(e.target.value)
+  }
+
+  const pollForTaskCompletion = (taskId, timeOfCompletionInSeconds) => {
+    intervalID.current = setInterval(() => {
+      currentTime.current = currentTime.current + 5;
+
+      if(currentTime.current === timeOfCompletionInSeconds){
+        console.log(
+          `Marking  task completed... (Task ID: ${taskId}) and current time is ${currentTime.current} seconds`,
+        );
+        dispatch(updateTask({id: taskId, status: STATUS_COMPLETED}))
+        clearInterval(intervalID.current);
+      }else {
+        console.log(`Polling for task completion... (Task ID: ${taskId}) and current time is ${currentTime.current} seconds`);
+      }
+      
+
+
+      
+    }, 5* 1000);
+  }
+
+  useEffect(() => {
+    console.log("eseEffect ran")
+    pollForTaskCompletion("Fdpk56lW4CW503rJzwYmj", 30);
+    return () => clearInterval(intervalID.current);
+  },[])
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex gap-2 items-center">
-          {showAddTaskBtn &&<button onClick={openNew} className="px-3 py-1 bg-green-600 text-white rounded">+ Add Task</button>}
-          {showFilterAndSort && <select value={filter} onChange={e=>setFilter(e.target.value)} className="border px-2 py-1 rounded text-sm">
-            <option>All</option>
-            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>}
+          <input
+            type="text"
+            placeholder="search task"
+            value={searchText}
+            onChange={onSearchInputChange}
+          />
+          {showAddTaskBtn && (
+            <button
+              onClick={openNew}
+              className="px-3 py-1 bg-green-600 text-white rounded"
+            >
+              + Add Task
+            </button>
+          )}
+          {showFilterAndSort && (
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="border px-2 py-1 rounded text-sm"
+            >
+              <option>All</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="flex gap-2 items-center">
-          {showFilterAndSort &&<button onClick={()=>setSortAsc(!sortAsc)} className="px-2 py-1 border rounded">Sort by due {sortAsc? '↑':'↓'}</button>}
+          {showFilterAndSort && (
+            <button
+              onClick={() => setSortAsc(!sortAsc)}
+              className="px-2 py-1 border rounded"
+            >
+              Sort by due {sortAsc ? "↑" : "↓"}
+            </button>
+          )}
         </div>
       </div>
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map(t => <TaskCard task={t} key={t.id} onEdit={(task)=>{setEditing(task); setShowForm(true)}} />)}
+        {list.map((t) => (
+          <TaskCard
+            task={t}
+            key={t.id}
+            onEdit={(task) => {
+              setEditing(task);
+              setShowForm(true);
+            }}
+          />
+        ))}
       </div>
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded p-4 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-2">{editing ? 'Edit Task' : 'New Task'}</h3>
-            <TaskForm initial={editing || {}} onCancel={() => setShowForm(false)} onSave={handleSave} />
+            <h3 className="text-lg font-semibold mb-2">
+              {editing ? "Edit Task" : "New Task"}
+            </h3>
+            <TaskForm
+              initial={editing || {}}
+              onCancel={() => setShowForm(false)}
+              onSave={handleSave}
+            />
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
